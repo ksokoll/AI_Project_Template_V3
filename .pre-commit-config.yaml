@@ -4,7 +4,9 @@
     hooks:
       - id: ruff
       - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
+ 
+# mypy is intentionally excluded from pre-commit.
+# It runs in an isolated venv without access to your project dependencies
+# (pydantic, fastapi, etc.) and will produce false import-not-found errors.
+# Run mypy via: make lint  or  the CI workflow.
+ 
