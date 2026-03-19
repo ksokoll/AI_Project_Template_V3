@@ -1,0 +1,15 @@
+﻿.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.env
+.env.local
+tests/
+docs/
+*.md
+.github/
+.DS_Store
+.git/
+.gitignore
