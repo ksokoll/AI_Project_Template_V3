@@ -1,65 +1,66 @@
 # tests/conftest.py
-"""Shared pytest fixtures.
+"""Shared pytest fixtures and stubs.
 
-MockClient satisfies the ServiceClient Protocol and returns deterministic
-responses — no real API calls in unit or integration tests.
+Stubs here are available to all test levels.
+Import in test files via pytest fixture injection or direct import.
 """
 
 import pytest
 
-from app.services.client import ServiceClient
+from app.services.client import CompletionRequest, CompletionResult, LLMClient
 
 
-class MockClient:
-    """Test double for ServiceClient.
+# ── Reusable LLM stubs ────────────────────────────────────────────────────────
 
-    Returns a fixed response so tests are deterministic and free.
-    Conforms to the ServiceClient Protocol without inheriting from it.
+class StubLLMClient:
+    """Configurable stub returning a preset response.
+
+    Args:
+        content: String returned as completion content.
+        tokens_used: Token count to report in CompletionResult.
     """
 
-    FIXED_RESPONSE = "Mock answer for testing."
+    def __init__(self, content: str = "[StubLLMClient] default response", tokens_used: int = 10) -> None:
+        self._content = content
+        self._tokens_used = tokens_used
 
-    def complete(self, system: str, user: str) -> str:  # noqa: ARG002
-        """Return a fixed response regardless of input.
-
-        Args:
-            system: Ignored.
-            user: Ignored.
-
-        Returns:
-            Fixed test response string.
-        """
-        return self.FIXED_RESPONSE
+    def complete(self, request: CompletionRequest) -> CompletionResult:
+        return CompletionResult(content=self._content, tokens_used=self._tokens_used)
 
 
-class FailingClient:
-    """Test double that always raises — for error-path tests."""
+class EmptyLLMClient:
+    """Stub returning an empty string."""
 
-    def complete(self, system: str, user: str) -> str:  # noqa: ARG002
-        """Raise unconditionally to simulate provider failure.
+    def complete(self, request: CompletionRequest) -> CompletionResult:
+        return CompletionResult(content="", tokens_used=0)
 
-        Args:
-            system: Ignored.
-            user: Ignored.
 
-        Raises:
-            RuntimeError: Always.
-        """
+class FailingLLMClient:
+    """Stub that always raises RuntimeError."""
+
+    def complete(self, request: CompletionRequest) -> CompletionResult:
         raise RuntimeError("Simulated provider failure")
 
 
-@pytest.fixture
-def mock_client() -> MockClient:
-    """Return a deterministic MockClient instance."""
-    return MockClient()
+# ── Protocol assertions ───────────────────────────────────────────────────────
+
+# Verify stubs satisfy the Protocol at import time.
+# If a stub drifts from the Protocol signature, this fails at collection,
+# not at serving time.
+assert isinstance(StubLLMClient(), LLMClient)
+assert isinstance(EmptyLLMClient(), LLMClient)
+assert isinstance(FailingLLMClient(), LLMClient)
 
 
-@pytest.fixture
-def failing_client() -> FailingClient:
+# ── Pytest fixtures ───────────────────────────────────────────────────────────
+
+@pytest.fixture()
+def stub_llm_client() -> StubLLMClient:
+    """Return a deterministic StubLLMClient instance."""
+    return StubLLMClient()
+
+
+@pytest.fixture()
+def failing_llm_client() -> FailingLLMClient:
     """Return a client that always raises RuntimeError."""
-    return FailingClient()
-
-
-# Verify MockClient satisfies the Protocol at import time
-assert isinstance(MockClient(), ServiceClient)
-assert isinstance(FailingClient(), ServiceClient)
+    return FailingLLMClient()

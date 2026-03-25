@@ -2,8 +2,7 @@
 
 A minimal, production-oriented starting point for AI/ML services.
 
-Clone, rename the package, wire in your provider, and start building —
-without the boilerplate overhead.
+Clone, rename the package, wire in your provider, and start building without the boilerplate overhead.
 
 ---
 
@@ -11,22 +10,28 @@ without the boilerplate overhead.
 
 ```
 src/app/
-  core/          Config, Pydantic schemas, input validation
-  services/      ServiceClient Protocol, Processor, optional Retriever (RAG)
+  core/          Config, Pydantic schemas, input validation, domain exceptions
+  services/      LLMClient + EmbeddingClient Protocols, CompletionRequest/Result,
+                 Processor (injected), optional RetrieverProtocol + KeywordRetriever (RAG)
   prompts/       Versioned prompt library (optional — delete if not LLM-based)
   pipeline.py    Orchestration
   main.py        FastAPI entry point
 
 tests/
   unit/          Behaviour-named unit tests, no I/O
-  integration/   Full pipeline with MockClient
+    test_protocols.py   Fitness functions for all Protocol contracts
+  integration/   Full pipeline with StubLLMClient, no real API calls
+  conftest.py    Shared stubs: StubLLMClient, EmptyLLMClient, FailingLLMClient
 
 docs/
   ARCHITECTURE.md
-  BOUNDED_CONTEXTS.md
+  BOUNDED_CONTEXTS.md   Boundary rules, error handling strategy, fitness functions
   DEVLOG.md
   decisions/ADR_TEMPLATE.md
 
+.dockerignore
+.github/workflows/ci.yml
+.pre-commit-config.yaml
 Makefile        lint · format · test · test-unit · test-integration · docker-build · run
 pyproject.toml  Single source of truth for deps, ruff, mypy, pytest, coverage
 Dockerfile      Multi-stage, non-root user
@@ -125,10 +130,38 @@ Not: `test_validate`
 
 ---
 
-## Version History
+## Changelog
 
-| Version | Description |
-|---|---|
-| V1 | Initial LLM template |
-| V2 | Added error handling, logging, prompt library (Chip Huyen pattern) |
-| V3 | src-layout, Protocol-based DI, test pyramid, CI/CD, Docker, Makefile |
+With the recent projects, a new set of best practises and enhancements came to my mind that now have
+been included here.
+
+### V3.1 (2026-03-25)
+
+**`services/client.py`**
+- `complete(system, user) -> str` replaced by typed `CompletionRequest` / `CompletionResult` — preserves temperature, response_format, and token tracking without `**kwargs`
+- `EmbeddingClient` added as a separate `@runtime_checkable` Protocol (RAG projects only)
+- `DummyEmbeddingClient` added as test stub
+
+**`services/processor.py`**
+- `Retriever()` no longer instantiated in `__init__` — receives `RetrieverProtocol | None` via constructor injection
+- Prompt call updated to `CompletionRequest`
+
+**`services/retriever.py`**
+- `RetrieverProtocol` introduced as `@runtime_checkable` Protocol
+- `Retriever` renamed to `KeywordRetriever` with explicit extension point for semantic search
+
+**`tests/conftest.py`**
+- Stubs updated to `CompletionRequest` signature
+- Protocol assertions added at import time
+
+**`tests/unit/test_protocols.py`** _(new)_
+- Fitness function tests for all client Protocol contracts
+
+**`docs/BOUNDED_CONTEXTS.md`**
+- Error Handling Strategy table added
+- Fitness Functions table added
+- `core/exceptions.py` convention documented
+
+**`.dockerignore`** _(new)_
+
+

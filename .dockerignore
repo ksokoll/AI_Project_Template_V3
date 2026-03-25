@@ -13,3 +13,7 @@ docs/
 .DS_Store
 .git/
 .gitignore
+__pycache__/
+*.py[cod]
+data/
+artifacts/
