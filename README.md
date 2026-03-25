@@ -118,6 +118,7 @@ Not: `test_validate`
 
 **Docs:** Update `docs/DEVLOG.md` each session. Add an ADR to
 `docs/decisions/` for every significant architectural decision.
+(Significant means that it had real alternatives and are hard to reverse)
 
 ---
 
